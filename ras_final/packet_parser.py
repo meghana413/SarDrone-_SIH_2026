@@ -1,4 +1,8 @@
-"""Parse a compact SAR packet received from the Raspberry Pi/LoRa side."""
+"""Reference parser for an alternative compact SAR payload format.
+
+This is not the live protocol used by ``ras_final.main``; the actual runtime
+format is defined in ``protocol.py`` as ``[[persons],[path]]|CONFIDENCE``.
+"""
 
 from __future__ import annotations
 

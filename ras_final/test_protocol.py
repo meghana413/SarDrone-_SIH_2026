@@ -33,6 +33,16 @@ def test_confidence_zero_and_no_persons() -> None:
     assert conf == "000"
 
 
+def test_confidence_fraction_is_encoded_as_percentage() -> None:
+    confidence_percent = 0.875 * 100.0
+    message = serialize_result([[5, 8]], [[0, 0], [1, 0]], confidence_percent)
+    parsed, conf = parse_serialized_message(message)
+
+    assert parsed[0] == [[5, 8]]
+    assert parsed[1] == [[0, 0], [1, 0]]
+    assert conf == "875"
+
+
 def test_pi_to_esp32_serial_frame_round_trip() -> None:
     message = serialize_result([[5, 8]], [[0, 0], [1, 0]], 95.2)
     framed = frame_serial_message(message)

@@ -14,12 +14,14 @@
    ls /dev/ttyUSB*
    ls /dev/ttyACM*
    ```
-5. Run continuous mode:
+5. Run continuous mode from the parent directory of `ras_final/`:
    ```bash
+   cd ~
    python -m ras_final.main --serial-port /dev/ttyUSB0
    ```
    or a single scan/send:
    ```bash
+   cd ~
    python -m ras_final.main --serial-port /dev/ttyUSB0 --once
    ```
 6. Optional: install the service for auto-start on boot:
@@ -32,28 +34,33 @@ This folder is designed to run by itself on Raspberry Pi 4 without depending on 
 
 ## Format used
 
-We send only:
+The runtime actually used by `main.py` -> `pipeline.py` -> `protocol.serialize_result()` is the compact wire format:
 
-- victims: a list of victim coordinates in pixel/grid space
-- path: the safest route coordinates in grid space
-
-Example payload:
-
-```json
-{
-  "v": [
-    [120, 200],
-    [130, 210]
-  ],
-  "p": [
-    [0, 0],
-    [1, 0],
-    [2, 1]
-  ]
-}
+```text
+[[persons],[path]]|CONFIDENCE
 ```
 
-This removes GPS values to reduce size and works better with LoRa.
+where:
+
+- `persons` is a list of victim grid points such as `[[x, y], [x, y]]`
+- `path` is the safe route in grid coordinates such as `[[x, y], [x, y], ...]`
+- `CONFIDENCE` is a three-digit percentage value encoded as `percentage * 10`
+
+Example:
+
+```text
+[[[5,8],[17,21]],[[0,0],[1,0],[2,0]]]|987
+```
+
+This means:
+
+- victims: `[[5, 8], [17, 21]]`
+- path: `[[0, 0], [1, 0], [2, 0]]`
+- confidence: `98.7%` encoded as `987`
+
+This is the format emitted by `protocol.serialize_result()` and is what the Pi actually transmits through UART and then the ESP32 forwards by LoRa.
+
+The legacy `payload.py` / `packet_parser.py` / `lora_sender.py` files are alternative reference examples for a different compact JSON structure and are not the runtime format wired into `ras_final.main`.
 
 ## Important project constraints
 

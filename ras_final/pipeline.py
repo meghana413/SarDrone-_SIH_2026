@@ -17,7 +17,7 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 from .camera import CameraSource
-from .protocol import GRID_MAX, GRID_SIZE, serialize_result, chunk_message, mean_confidence
+from .protocol import GRID_MAX, GRID_SIZE, chunk_message, format_confidence, mean_confidence, serialize_result
 
 from .models.model1_stitching.stitch import Stitcher
 from .models.model2_detection.infer import Detector
@@ -71,7 +71,11 @@ class SARPiPipeline:
         if not frame_list:
             raise ValueError("no frames available")
         if len(frame_list) >= 2:
-            return self.stitcher(frame_list)
+            try:
+                return self.stitcher(frame_list)
+            except RuntimeError:
+                logger.warning("stitching failed, falling back to single frame")
+                return frame_list[-1]
         return frame_list[0]
 
     def make_grid_from_detections(self, detections: Iterable[Any], frame_shape: tuple[int, int]) -> list[list[float]]:
@@ -104,11 +108,17 @@ class SARPiPipeline:
             persons.append([gx, gy])
             conf_values.append(float(detection.confidence))
 
-        grid = self.make_grid_from_detections(detections, frame.shape[:2])
-        path = find_path(grid, (0, 0), (GRID_MAX, GRID_MAX))
+        cost_grid = detections_to_cost_grid(detections, (GRID_SIZE, GRID_SIZE))
+        if persons:
+            goal = min(persons, key=lambda point: abs(point[0]) + abs(point[1]))
+            path = find_path(cost_grid, (0, 0), tuple(goal))
+            if not path:
+                path = find_path(cost_grid, (0, 0), (GRID_MAX, GRID_MAX))
+        else:
+            path = find_path(cost_grid, (0, 0), (GRID_MAX, GRID_MAX))
         path_points = [[x, y] for x, y in [(col, row) for row, col in path]]
 
-        confidence = mean_confidence(conf_values)
+        confidence = mean_confidence(conf_values) * 100.0
         if not persons:
             confidence = 0.0
 
@@ -150,10 +160,6 @@ class SARPiPipeline:
             self.current_result = self.next_result
             self.next_result = ScanResult()
         return True
-
-
-def format_confidence(confidence: float) -> str:
-    return f"{int(round(max(0.0, min(100.0, confidence)) * 10)):03d}"
 
 
 if __name__ == "__main__":

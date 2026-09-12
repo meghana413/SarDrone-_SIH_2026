@@ -72,7 +72,20 @@ def test_astar_and_detection_grid() -> None:
     grid[2][1:4] = [float("inf")] * 3
     path = find_path(grid, (0, 0), (4, 4))
     assert path[0] == (0, 0) and path[-1] == (4, 4)
-    assert len(detections_to_cost_grid([record(0.9)], (4, 4))) == 4
+    victim_grid = detections_to_cost_grid([record(0.9)], (4, 4))
+    assert len(victim_grid) == 4
+    assert victim_grid[0][0] == 0.0
+    assert any(cell >= 100.0 for row in victim_grid for cell in row)
+
+
+def test_astar_plans_toward_detected_victim() -> None:
+    victim = {"class_name": "victim", "bbox": [0.0, 0.0, 2.0, 2.0]}
+    grid = detections_to_cost_grid([victim], (4, 4))
+    assert grid[1][1] == 100.0
+    assert any(cell >= 100.0 for row in grid for cell in row)
+
+    grid2 = detections_to_cost_grid([{"class_name": "victim", "bbox": [0.0, 0.0, 0.5, 0.5]}], (4, 4))
+    assert grid2[0][0] == 100.0
 
 
 def test_lora_without_hardware() -> None:

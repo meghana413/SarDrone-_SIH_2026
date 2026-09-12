@@ -1,9 +1,13 @@
-"""Example: send a compact victim+path payload from Raspberry Pi."""
+"""Reference example for an alternate compact SAR payload format.
+
+This helper is not the live runtime format used by ``ras_final.main``; the actual
+runtime uses ``protocol.serialize_result()`` and emits ``[[persons],[path]]|CONFIDENCE``.
+"""
 
 from __future__ import annotations
 
-from payload import build_compact_payload, ensure_within_limit
-from lora_sender import LoRaSender
+from .payload import build_compact_payload, ensure_within_limit
+from .lora_sender import LoRaSender
 
 
 def main() -> None:

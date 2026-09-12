@@ -1,8 +1,8 @@
-"""Compact SAR payload builder for Raspberry Pi telemetry.
+"""Alternative reference protocol for compact SAR telemetry.
 
-This format keeps only the victim coordinates and the final safe path in local
-pixel/grid coordinates, without GPS. This reduces packet size and is better for
-LoRa transmission.
+This module is kept as a historical/reference implementation only. It is not the
+runtime format wired into ``ras_final.main``; the live Pi pipeline uses the
+``[[persons],[path]]|CONFIDENCE`` format implemented in ``protocol.py``.
 """
 
 from __future__ import annotations

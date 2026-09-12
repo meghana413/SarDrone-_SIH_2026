@@ -1,7 +1,8 @@
-"""LoRa sender for the compact SAR payload.
+"""Reference LoRa sender for an alternative compact SAR payload.
 
-This code is meant for a Raspberry Pi or ESP32-side device that sends a compact
-JSON payload: {"v": [[x,y], ...], "p": [[row,col], ...]}
+This is not the live protocol used by ``ras_final.main``. The active Raspberry Pi
+runtime serializes telemetry with ``protocol.serialize_result()`` as
+``[[persons],[path]]|CONFIDENCE`` and sends that via UART to the ESP32.
 """
     
 from __future__ import annotations

@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/pi/ras_final
+WorkingDirectory=/home/pi
 ExecStart=/home/pi/ras_final/.venv/bin/python -m ras_final.main --serial-port /dev/ttyUSB0
 Restart=on-failure
 RestartSec=5

@@ -58,9 +58,35 @@ def find_path(cost_grid: Grid, start: Cell, goal: Cell, *, obstacle_cost: float 
 
 
 def detections_to_cost_grid(detections: Iterable[object], grid_shape: tuple[int, int]) -> list[list[float]]:
-    """Integration point for Model 2 to grid conversion."""
-    del detections
+    """Convert victim detections into a cost grid with victim cells marked as hazards."""
     rows, columns = grid_shape
     if rows <= 0 or columns <= 0:
         raise ValueError("grid_shape must contain positive dimensions")
-    return [[0.0 for _ in range(columns)] for _ in range(rows)]
+    grid = [[0.0 for _ in range(columns)] for _ in range(rows)]
+
+    for detection in detections:
+        if detection is None:
+            continue
+        if isinstance(detection, dict):
+            class_name = str(detection.get("class_name", "")).lower()
+            bbox = detection.get("bbox")
+            if class_name != "victim" or not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                continue
+            center_x = float(bbox[0]) + float(bbox[2])
+            center_y = float(bbox[1]) + float(bbox[3])
+            center_x /= 2.0
+            center_y /= 2.0
+        else:
+            class_name = str(getattr(detection, "class_name", "")).lower()
+            if class_name != "victim":
+                continue
+            center_x = (float(getattr(detection, "x1")) + float(getattr(detection, "x2"))) / 2.0
+            center_y = (float(getattr(detection, "y1")) + float(getattr(detection, "y2"))) / 2.0
+
+        x_index = int(round((center_x / max(columns, 1)) * (columns - 1)))
+        y_index = int(round((center_y / max(rows, 1)) * (rows - 1)))
+        x_index = max(0, min(columns - 1, x_index))
+        y_index = max(0, min(rows - 1, y_index))
+        grid[y_index][x_index] = 100.0
+
+    return grid
