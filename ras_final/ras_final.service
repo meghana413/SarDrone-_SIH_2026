@@ -1,0 +1,20 @@
+[Unit]
+Description=Raspberry Pi SAR UAV telemetry pipeline
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/ras_final
+ExecStart=/home/pi/ras_final/.venv/bin/python -m ras_final.main --serial-port /dev/ttyUSB0
+Restart=on-failure
+RestartSec=5
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+
+# Install:
+# sudo cp /home/pi/ras_final/ras_final.service /etc/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now ras_final
