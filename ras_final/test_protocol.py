@@ -1,6 +1,40 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import numpy as np
+
+from ras_final.pipeline import SARPiPipeline
 from ras_final.protocol import chunk_message, frame_serial_message, parse_serialized_message, reconstruct_message, serialize_result, unframe_serial_message
+
+
+def test_detect_and_plan_uses_percentage_confidence() -> None:
+    pipeline = SARPiPipeline.__new__(SARPiPipeline)
+    pipeline.detector = SimpleNamespace(
+        predict=lambda frame: [
+            SimpleNamespace(class_name="victim", confidence=0.875, bbox=[0.0, 0.0, 10.0, 10.0], x1=0.0, x2=10.0, y1=0.0, y2=10.0)
+        ]
+    )
+
+    result = pipeline.detect_and_plan(np.zeros((32, 32, 3), dtype=np.uint8))
+
+    assert result.confidence == 87.5
+    assert result.serialized.endswith("|875")
+
+
+def test_detect_and_plan_targets_detected_victim_cell() -> None:
+    pipeline = SARPiPipeline.__new__(SARPiPipeline)
+    pipeline.detector = SimpleNamespace(
+        predict=lambda frame: [
+            SimpleNamespace(class_name="victim", confidence=0.9, bbox=[12.0, 8.0, 8.0, 8.0], x1=12.0, x2=20.0, y1=8.0, y2=16.0)
+        ]
+    )
+
+    result = pipeline.detect_and_plan(np.zeros((32, 32, 3), dtype=np.uint8))
+
+    assert result.path
+    assert result.path[-1] == result.persons[0]
+    assert result.path[-1] != [31, 31]
 
 
 def test_serialize_and_parse_round_trip() -> None:

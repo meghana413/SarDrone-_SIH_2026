@@ -111,7 +111,8 @@ class SARPiPipeline:
         cost_grid = detections_to_cost_grid(detections, (GRID_SIZE, GRID_SIZE))
         if persons:
             goal = min(persons, key=lambda point: abs(point[0]) + abs(point[1]))
-            path = find_path(cost_grid, (0, 0), tuple(goal))
+            goal_row, goal_col = goal[1], goal[0]
+            path = find_path(cost_grid, (0, 0), (goal_row, goal_col))
             if not path:
                 path = find_path(cost_grid, (0, 0), (GRID_MAX, GRID_MAX))
         else:
