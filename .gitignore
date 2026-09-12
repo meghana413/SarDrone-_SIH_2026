@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# YOLO training outputs
+runs/
+results/
+
+# TensorRT
+*.engine
+
+# Datasets
+data/raw/
