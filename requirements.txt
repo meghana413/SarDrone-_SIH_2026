@@ -1,0 +1,8 @@
+# CPU-only runtime dependencies for laptop development and Raspberry Pi OS 64-bit.
+# Ultralytics installs its compatible CPU PyTorch dependency; CUDA/TensorRT are not required.
+ultralytics==8.3.0
+opencv-python==4.10.0.84
+numpy==1.26.4
+networkx==3.3
+pyserial==3.5
+PyYAML==6.0.2

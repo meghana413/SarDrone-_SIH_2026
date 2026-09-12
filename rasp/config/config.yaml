@@ -1,0 +1,32 @@
+paths:
+  results_dir: results/afo_victim
+  input_source: 0
+
+# Inference settings. Only ``cpu`` is used by this portable runtime.
+model_backend: pytorch  # pytorch, onnx, or ncnn (after optional export)
+model_path: runs/detect/afo_victim/weights/best.pt
+imgsz: 640
+confidence: 0.35
+iou: 0.5
+device: cpu
+frame_skip: 0
+
+stitching:
+  interval_frames: 30
+  min_frames: 2
+  resize_width: 960  # set null to preserve original frame resolution
+  max_buffer_frames: 30
+
+serial:
+  enabled: false
+  port: /dev/ttyUSB0
+  baudrate: 115200
+  timeout_seconds: 1.0
+  max_packet_bytes: 512
+
+pipeline:
+  gps_origin: [0.0, 0.0]
+  grid_resolution_m: 5.0
+  waypoint_spacing_cells: 1
+  send_every_n_frames: 1
+  display: false

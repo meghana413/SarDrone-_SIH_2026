@@ -4,12 +4,23 @@ __pycache__/
 .venv/
 venv/
 
-# YOLO training outputs
+# YOLO datasets
+data/afo_small/
+data/raw/
+
+# YOLO training/inference outputs
 runs/
 results/
 
-# TensorRT
+# Model weights / engines
+yolo11n.pt
+yolov8n.pt
 *.engine
 
-# Datasets
-data/raw/
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

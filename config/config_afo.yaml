@@ -1,0 +1,46 @@
+paths:
+  dataset_root: data/afo_small
+  data_yaml: data/afo_small/data.yaml
+  results_dir: results/afo_victim
+  input_source: 0
+  train_project: runs/detect
+  train_name: afo_victim
+
+model_backend: pytorch
+model_path: runs/detect/afo_victim/weights/best.pt
+imgsz: 640
+confidence: 0.35
+iou: 0.5
+device: cpu
+frame_skip: 0
+
+model:
+  checkpoint: yolo11n.pt
+  image_size: 640
+  confidence: 0.35
+  iou: 0.5
+  device: cpu
+  classes: [victim]
+  train:
+    epochs: 50
+    batch: 4
+    workers: 2
+    patience: 12
+    time_minutes: 20
+
+stitching:
+  interval_frames: 30
+  min_frames: 2
+
+serial:
+  enabled: false
+  port: /dev/ttyUSB0
+  baudrate: 115200
+  timeout_seconds: 1.0
+  max_packet_bytes: 512
+
+pipeline:
+  gps_origin: [0.0, 0.0]
+  grid_resolution_m: 5.0
+  waypoint_spacing_cells: 1
+  send_every_n_frames: 1
