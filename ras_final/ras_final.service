@@ -5,6 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+# This is the directory that contains the ras_final package; running from
+# inside /home/pi/ras_final would make `python -m ras_final.main` fail.
 WorkingDirectory=/home/pi
 ExecStart=/home/pi/ras_final/.venv/bin/python -m ras_final.main --serial-port /dev/ttyUSB0
 Restart=on-failure

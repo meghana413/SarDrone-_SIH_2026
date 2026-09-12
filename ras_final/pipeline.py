@@ -17,13 +17,16 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 from .camera import CameraSource
-from .protocol import GRID_MAX, GRID_SIZE, chunk_message, format_confidence, mean_confidence, serialize_result
+from .payload import build_compact_payload, format_confidence
 
 from .models.model1_stitching.stitch import Stitcher
 from .models.model2_detection.infer import Detector
 from .models.model3_pathfinding.astar import detections_to_cost_grid, find_path
 
 logger = logging.getLogger(__name__)
+
+GRID_SIZE = 32
+GRID_MAX = GRID_SIZE - 1
 
 
 def _map_pixel_to_grid(x: float, y: float, frame_w: int, frame_h: int, grid_size: int = GRID_SIZE) -> tuple[int, int]:
@@ -41,8 +44,7 @@ class ScanResult:
     persons: list[list[int]] = field(default_factory=list)
     path: list[list[int]] = field(default_factory=list)
     confidence: float = 0.0
-    serialized: str = ""
-    chunks: list[str] = field(default_factory=list)
+    payload: str = ""
 
 
 class SARPiPipeline:
@@ -78,19 +80,6 @@ class SARPiPipeline:
                 return frame_list[-1]
         return frame_list[0]
 
-    def make_grid_from_detections(self, detections: Iterable[Any], frame_shape: tuple[int, int]) -> list[list[float]]:
-        rows, cols = GRID_SIZE, GRID_SIZE
-        grid = [[0.0 for _ in range(cols)] for _ in range(rows)]
-        height, width = frame_shape[:2]
-        for detection in detections:
-            if detection is None:
-                continue
-            center_x = (float(detection.x1) + float(detection.x2)) / 2.0
-            center_y = (float(detection.y1) + float(detection.y2)) / 2.0
-            gx, gy = _map_pixel_to_grid(center_x, center_y, width, height, GRID_SIZE)
-            grid[gy][gx] = 100.0
-        return grid
-
     def detect_and_plan(self, frame: np.ndarray) -> ScanResult:
         detections = self.detector.predict(frame)
         logger.info("Detections: %d", len(detections))
@@ -108,7 +97,7 @@ class SARPiPipeline:
             persons.append([gx, gy])
             conf_values.append(float(detection.confidence))
 
-        cost_grid = detections_to_cost_grid(detections, (GRID_SIZE, GRID_SIZE))
+        cost_grid = detections_to_cost_grid(detections, (GRID_SIZE, GRID_SIZE), frame_shape=frame.shape[:2])
         if persons:
             goal = min(persons, key=lambda point: abs(point[0]) + abs(point[1]))
             goal_row, goal_col = goal[1], goal[0]
@@ -119,17 +108,16 @@ class SARPiPipeline:
             path = find_path(cost_grid, (0, 0), (GRID_MAX, GRID_MAX))
         path_points = [[x, y] for x, y in [(col, row) for row, col in path]]
 
-        confidence = mean_confidence(conf_values) * 100.0
+        confidence = sum(conf_values) / len(conf_values) if conf_values else 0.0
         if not persons:
             confidence = 0.0
 
-        serialized = serialize_result(persons, path_points, confidence)
-        chunks = chunk_message(serialized, message_id="SAR")
-        logger.info("Serialized message length: %d bytes; chunks: %d; path length: %d; persons: %d",
-                    len(serialized.encode("utf-8")), len(chunks), len(path_points), len(persons))
+        payload = build_compact_payload(persons, path_points)
+        logger.info("Payload length: %d bytes; path length: %d; persons: %d",
+                    len(payload.encode("utf-8")), len(path_points), len(persons))
         logger.info("Confidence: %s", format_confidence(confidence))
 
-        return ScanResult(persons=persons, path=path_points, confidence=confidence, serialized=serialized, chunks=chunks)
+        return ScanResult(persons=persons, path=path_points, confidence=confidence, payload=payload)
 
     def run_cycle(self) -> ScanResult:
         frames = self.camera.read_many(count=2)
@@ -168,6 +156,6 @@ if __name__ == "__main__":
     pipeline = SARPiPipeline(source=None)
     try:
         result = pipeline.run_cycle()
-        print(json.dumps({"persons": result.persons, "path": result.path, "confidence": result.confidence, "chunks": len(result.chunks)}))
+        print(json.dumps({"persons": result.persons, "path": result.path, "confidence": result.confidence, "payload": result.payload}))
     finally:
         pipeline.camera.close()

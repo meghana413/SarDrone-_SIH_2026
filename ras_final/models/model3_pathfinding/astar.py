@@ -57,12 +57,27 @@ def find_path(cost_grid: Grid, start: Cell, goal: Cell, *, obstacle_cost: float 
     return []
 
 
-def detections_to_cost_grid(detections: Iterable[object], grid_shape: tuple[int, int]) -> list[list[float]]:
-    """Convert victim detections into a cost grid with victim cells marked as hazards."""
-    rows, columns = grid_shape
-    if rows <= 0 or columns <= 0:
-        raise ValueError("grid_shape must contain positive dimensions")
-    grid = [[0.0 for _ in range(columns)] for _ in range(rows)]
+def detections_to_cost_grid(
+    detections: Iterable[object], grid: tuple[int, int] | list[list[float]], *, frame_shape: tuple[int, int] | None = None
+) -> list[list[float]]:
+    """Map victim bounding-box centres from pixels into planner grid cells.
+
+    Victim cells remain traversable because they are the A* goals; the caller
+    selects one of these mapped cells as the goal instead of blindly routing to
+    the far corner. ``frame_shape`` is ``(height, width)`` and is required for
+    correct conversion from camera pixels (it defaults to grid dimensions for
+    callers already supplying grid-space coordinates).
+    """
+    if isinstance(grid, tuple):
+        rows, columns = grid
+        if rows <= 0 or columns <= 0:
+            raise ValueError("grid shape must contain positive dimensions")
+        cost_grid = [[0.0 for _ in range(columns)] for _ in range(rows)]
+    else:
+        if not grid or not grid[0] or any(len(row) != len(grid[0]) for row in grid):
+            raise ValueError("grid must be a non-empty rectangular list")
+        cost_grid = grid
+        rows, columns = len(cost_grid), len(cost_grid[0])
 
     for detection in detections:
         if detection is None:
@@ -83,10 +98,17 @@ def detections_to_cost_grid(detections: Iterable[object], grid_shape: tuple[int,
             center_x = (float(getattr(detection, "x1")) + float(getattr(detection, "x2"))) / 2.0
             center_y = (float(getattr(detection, "y1")) + float(getattr(detection, "y2"))) / 2.0
 
-        x_index = int(round((center_x / max(columns, 1)) * (columns - 1)))
-        y_index = int(round((center_y / max(rows, 1)) * (rows - 1)))
+        frame_rows, frame_columns = frame_shape or (rows, columns)
+        if frame_rows <= 0 or frame_columns <= 0:
+            raise ValueError("frame_shape must contain positive dimensions")
+        x_index = int(round((center_x / max(frame_columns - 1, 1)) * (columns - 1)))
+        y_index = int(round((center_y / max(frame_rows - 1, 1)) * (rows - 1)))
         x_index = max(0, min(columns - 1, x_index))
         y_index = max(0, min(rows - 1, y_index))
-        grid[y_index][x_index] = 100.0
+        # Explicitly materialise the victim's grid cell as a priority marker.
+        # ``find_path`` clamps grid costs to zero or above, so this marker is
+        # traversable when the selected victim is used as the goal rather than
+        # becoming an obstacle that makes the rescue target unreachable.
+        cost_grid[y_index][x_index] = -1.0
 
-    return grid
+    return cost_grid

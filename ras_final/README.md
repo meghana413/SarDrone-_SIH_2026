@@ -3,7 +3,7 @@
 ## Deploy on Raspberry Pi 4
 
 1. Copy this folder to the Raspberry Pi 4 as a standalone deployable package.
-2. Put the YOLO model file named `best.pt` into `~/ras_final/weights/`.
+2. The tracked `ras_final/weights/.gitkeep` creates the weights directory on a fresh clone. Put the YOLO model file named `best.pt` into `~/ras_final/weights/`.
 3. Set up the local environment from inside the `ras_final/` folder:
    ```bash
    cd ~/ras_final
@@ -34,31 +34,20 @@ This folder is designed to run by itself on Raspberry Pi 4 without depending on 
 
 ## Format used
 
-The runtime used by `main.py` -> `pipeline.py` -> `protocol.serialize_result()` emits a compact wire format of the form:
+The runtime used by `main.py` -> `pipeline.py` -> `payload.build_compact_payload()` emits compact JSON:
 
-```text
-[persons, path]|CONFIDENCE
+```json
+{"v":[[5,8],[17,21]],"p":[[0,0],[1,0],[2,0]]}
 ```
 
 where:
 
-- `persons` is a list of victim grid coordinates, each as `[x, y]` on a 32 x 32 logical grid
-- `path` is the safe route as a list of `[x, y]` grid cells, starting from the origin and ending at the selected goal
-- `CONFIDENCE` is a three-digit number equal to `round(percentage * 10)`
+- `v` is a list of victim `[x, y]` coordinates on the 32 x 32 logical grid.
+- `p` is the safe route as `[x, y]` grid cells, from the origin to a detected victim.
 
-Example:
+YOLO confidence remains normalized (`0.0`--`1.0`) internally. Where a three-digit display value is needed, it is formatted with `int(confidence * 100)`, so `0.875` becomes `087` rather than `000`.
 
-```text
-[[[5,8],[17,21]],[[0,0],[1,0],[2,0]]]|987
-```
-
-This means:
-
-- victims: `[[5, 8], [17, 21]]`
-- path: `[[0, 0], [1, 0], [2, 0]]`
-- confidence: `98.7%`, encoded as `987`
-
-This is the format emitted by `protocol.serialize_result()` and is what the Pi transmits over UART before the ESP32 forwards it by LoRa.
+This JSON text is what the Pi transmits over UART before the ESP32 forwards it by LoRa.
 
 ## Important project constraints
 

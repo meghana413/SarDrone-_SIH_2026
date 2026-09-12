@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from typing import Iterable
+import logging
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class Stitcher:
@@ -20,9 +23,14 @@ class Stitcher:
         images = [self._resize(frame) for frame in frames if frame is not None and frame.size]
         if len(images) < 2:
             raise ValueError("stitching requires at least two non-empty frames")
-        status, panorama = self._stitcher.stitch(images)
+        try:
+            status, panorama = self._stitcher.stitch(images)
+        except (cv2.error, RuntimeError) as exc:
+            logger.warning("OpenCV stitching raised %s; using latest frame", exc)
+            return images[-1]
         if status != cv2.Stitcher_OK or panorama is None or panorama.size == 0:
-            raise RuntimeError(f"OpenCV stitching failed with status {status}")
+            logger.warning("OpenCV stitching failed with status %s; using latest frame", status)
+            return images[-1]
         return panorama
 
     def stitch(self, frames: Iterable[np.ndarray]) -> np.ndarray:
