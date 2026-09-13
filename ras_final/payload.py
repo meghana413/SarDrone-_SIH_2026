@@ -1,7 +1,7 @@
 """Compact JSON telemetry payloads for the Raspberry Pi SAR runtime.
 
-The on-air application payload is always ``{"v":[...],"p":[...]}``, where
-``v`` contains victim grid coordinates and ``p`` contains the planned route.
+The on-air application payload is always ``{"v":[{"x":...,"y":...}],"p":[...]}``,
+where ``v`` contains victim grid coordinates and ``p`` contains the planned route.
 """
 
 from __future__ import annotations
@@ -32,17 +32,33 @@ def _as_point_list(points: Iterable[Sequence[int | float]]) -> list[list[int]]:
     return result
 
 
+def _as_victim_list(victims: Iterable[Sequence[int | float] | dict[str, int | float]]) -> list[dict[str, int]]:
+    result: list[dict[str, int]] = []
+    for victim in victims:
+        if isinstance(victim, dict):
+            if set(victim) != {"x", "y"}:
+                raise ValueError(f"victim must contain exactly x and y: {victim!r}")
+            result.append({"x": int(victim["x"]), "y": int(victim["y"])})
+            continue
+        if len(victim) != 2:
+            raise ValueError(f"victim coordinate must contain two values: {victim!r}")
+        result.append({"x": int(victim[0]), "y": int(victim[1])})
+    return result
+
+
 def compact_json(value: object) -> str:
     return json.dumps(value, separators=(",", ":"), allow_nan=False)
 
 
-def build_compact_payload(victims: Iterable[Sequence[int | float]], path: Iterable[Sequence[int | float]]) -> str:
-    """Build a <=512-byte ``{"v": ..., "p": ...}`` payload.
+def build_compact_payload(
+    victims: Iterable[Sequence[int | float] | dict[str, int | float]], path: Iterable[Sequence[int | float]]
+) -> str:
+    """Build a <=512-byte ``{"v":[{"x":...,"y":...}],"p":...}`` payload.
 
     When a complete route is too large, retain its prefix (which includes the
     vehicle's current position) and trim only trailing route cells.
     """
-    victim_points = _as_point_list(victims)
+    victim_points = _as_victim_list(victims)
     path_points = _as_point_list(path)
     payload = {"v": victim_points, "p": path_points}
 
@@ -54,12 +70,12 @@ def build_compact_payload(victims: Iterable[Sequence[int | float]], path: Iterab
     return compact_json(payload)
 
 
-def parse_compact_payload(payload: str | bytes) -> dict[str, list[list[int]]]:
+def parse_compact_payload(payload: str | bytes) -> dict[str, list[dict[str, int]] | list[list[int]]]:
     text = payload.decode("utf-8") if isinstance(payload, bytes) else payload
     parsed = json.loads(text)
     if not isinstance(parsed, dict) or set(parsed) != {"v", "p"}:
         raise ValueError("payload must contain exactly the 'v' and 'p' fields")
-    return {"v": _as_point_list(parsed["v"]), "p": _as_point_list(parsed["p"])}
+    return {"v": _as_victim_list(parsed["v"]), "p": _as_point_list(parsed["p"])}
 
 
 def ensure_within_limit(payload: str) -> None:

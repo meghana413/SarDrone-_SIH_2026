@@ -9,6 +9,39 @@ Grid = Sequence[Sequence[float]]
 Cell = tuple[int, int]
 
 
+def victim_cells_from_detections(
+    detections: Iterable[object], grid_shape: tuple[int, int], *, frame_shape: tuple[int, int] | None = None
+) -> list[Cell]:
+    """Return unique victim cells as ``(row, column)`` for the planner."""
+    rows, columns = grid_shape
+    if rows <= 0 or columns <= 0:
+        raise ValueError("grid shape must contain positive dimensions")
+    frame_rows, frame_columns = frame_shape or (rows, columns)
+    if frame_rows <= 0 or frame_columns <= 0:
+        raise ValueError("frame_shape must contain positive dimensions")
+
+    cells: list[Cell] = []
+    for detection in detections:
+        if detection is None:
+            continue
+        if isinstance(detection, dict):
+            class_name, bbox = str(detection.get("class_name", "")).lower(), detection.get("bbox")
+            if class_name != "victim" or not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                continue
+            center_x = (float(bbox[0]) + float(bbox[2])) / 2.0
+            center_y = (float(bbox[1]) + float(bbox[3])) / 2.0
+        else:
+            if str(getattr(detection, "class_name", "")).lower() != "victim":
+                continue
+            center_x = (float(getattr(detection, "x1")) + float(getattr(detection, "x2"))) / 2.0
+            center_y = (float(getattr(detection, "y1")) + float(getattr(detection, "y2"))) / 2.0
+        column = max(0, min(columns - 1, int(round(center_x * (columns - 1) / max(frame_columns - 1, 1)))))
+        row = max(0, min(rows - 1, int(round(center_y * (rows - 1) / max(frame_rows - 1, 1)))))
+        if (row, column) not in cells:
+            cells.append((row, column))
+    return cells
+
+
 def find_path(cost_grid: Grid, start: Cell, goal: Cell, *, obstacle_cost: float = math.inf) -> list[Cell]:
     """Return the lowest-cost 4-connected path, including start and goal."""
     if not cost_grid or not cost_grid[0]:
@@ -79,32 +112,7 @@ def detections_to_cost_grid(
         cost_grid = grid
         rows, columns = len(cost_grid), len(cost_grid[0])
 
-    for detection in detections:
-        if detection is None:
-            continue
-        if isinstance(detection, dict):
-            class_name = str(detection.get("class_name", "")).lower()
-            bbox = detection.get("bbox")
-            if class_name != "victim" or not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
-                continue
-            center_x = float(bbox[0]) + float(bbox[2])
-            center_y = float(bbox[1]) + float(bbox[3])
-            center_x /= 2.0
-            center_y /= 2.0
-        else:
-            class_name = str(getattr(detection, "class_name", "")).lower()
-            if class_name != "victim":
-                continue
-            center_x = (float(getattr(detection, "x1")) + float(getattr(detection, "x2"))) / 2.0
-            center_y = (float(getattr(detection, "y1")) + float(getattr(detection, "y2"))) / 2.0
-
-        frame_rows, frame_columns = frame_shape or (rows, columns)
-        if frame_rows <= 0 or frame_columns <= 0:
-            raise ValueError("frame_shape must contain positive dimensions")
-        x_index = int(round((center_x / max(frame_columns - 1, 1)) * (columns - 1)))
-        y_index = int(round((center_y / max(frame_rows - 1, 1)) * (rows - 1)))
-        x_index = max(0, min(columns - 1, x_index))
-        y_index = max(0, min(rows - 1, y_index))
+    for y_index, x_index in victim_cells_from_detections(detections, (rows, columns), frame_shape=frame_shape):
         # Explicitly materialise the victim's grid cell as a priority marker.
         # ``find_path`` clamps grid costs to zero or above, so this marker is
         # traversable when the selected victim is used as the goal rather than

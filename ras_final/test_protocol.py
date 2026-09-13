@@ -15,8 +15,8 @@ def test_normalized_confidence_is_converted_before_integer_formatting() -> None:
 
 def test_payload_uses_the_documented_json_schema() -> None:
     payload = build_compact_payload([[5, 8]], [[0, 0], [1, 0]])
-    assert payload == '{"v":[[5,8]],"p":[[0,0],[1,0]]}'
-    assert parse_compact_payload(payload) == {"v": [[5, 8]], "p": [[0, 0], [1, 0]]}
+    assert payload == '{"v":[{"x":5,"y":8}],"p":[[0,0],[1,0]]}'
+    assert parse_compact_payload(payload) == {"v": [{"x": 5, "y": 8}], "p": [[0, 0], [1, 0]]}
 
 
 def test_detect_and_plan_targets_a_mapped_victim_cell() -> None:
@@ -28,7 +28,7 @@ def test_detect_and_plan_targets_a_mapped_victim_cell() -> None:
     result = pipeline.detect_and_plan(np.zeros((32, 32, 3), dtype=np.uint8))
 
     assert result.path[-1] == result.persons[0]
-    assert parse_compact_payload(result.payload)["v"] == result.persons
+    assert parse_compact_payload(result.payload)["v"] == [{"x": x, "y": y} for x, y in result.persons]
 
 
 def test_stitch_failure_returns_latest_frame() -> None:

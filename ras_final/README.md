@@ -37,12 +37,12 @@ This folder is designed to run by itself on Raspberry Pi 4 without depending on 
 The runtime used by `main.py` -> `pipeline.py` -> `payload.build_compact_payload()` emits compact JSON:
 
 ```json
-{"v":[[5,8],[17,21]],"p":[[0,0],[1,0],[2,0]]}
+{"v":[{"x":5,"y":8},{"x":17,"y":21}],"p":[[0,0],[1,0],[2,0]]}
 ```
 
 where:
 
-- `v` is a list of victim `[x, y]` coordinates on the 32 x 32 logical grid.
+- `v` is a list of victim coordinate objects, each with integer `x` and `y` values on the 32 x 32 logical grid.
 - `p` is the safe route as `[x, y]` grid cells, from the origin to a detected victim.
 
 YOLO confidence remains normalized (`0.0`--`1.0`) internally. Where a three-digit display value is needed, it is formatted with `int(confidence * 100)`, so `0.875` becomes `087` rather than `000`.

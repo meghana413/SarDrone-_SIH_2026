@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument("--baudrate", type=int, default=115200)
     args = parser.parse_args()
 
-    payload = build_compact_payload([[12, 20], [13, 21]], [[0, 0], [1, 0], [2, 1]])
+    payload = build_compact_payload([{"x": 12, "y": 20}, {"x": 13, "y": 21}], [[0, 0], [1, 0], [2, 1]])
     ensure_within_limit(payload)
     sender = LoRaSender(args.serial_port, args.baudrate)
     try:

@@ -21,7 +21,7 @@ from .payload import build_compact_payload, format_confidence
 
 from .models.model1_stitching.stitch import Stitcher
 from .models.model2_detection.infer import Detector
-from .models.model3_pathfinding.astar import detections_to_cost_grid, find_path
+from .models.model3_pathfinding.astar import detections_to_cost_grid, find_path, victim_cells_from_detections
 
 logger = logging.getLogger(__name__)
 
@@ -91,17 +91,14 @@ class SARPiPipeline:
         for detection in detections:
             if detection.class_name.lower() != "victim":
                 continue
-            center_x = (float(detection.x1) + float(detection.x2)) / 2.0
-            center_y = (float(detection.y1) + float(detection.y2)) / 2.0
-            gx, gy = _map_pixel_to_grid(center_x, center_y, frame.shape[1], frame.shape[0], GRID_SIZE)
-            persons.append([gx, gy])
             conf_values.append(float(detection.confidence))
 
+        victim_cells = victim_cells_from_detections(detections, (GRID_SIZE, GRID_SIZE), frame_shape=frame.shape[:2])
+        persons = [[column, row] for row, column in victim_cells]
         cost_grid = detections_to_cost_grid(detections, (GRID_SIZE, GRID_SIZE), frame_shape=frame.shape[:2])
         if persons:
-            goal = min(persons, key=lambda point: abs(point[0]) + abs(point[1]))
-            goal_row, goal_col = goal[1], goal[0]
-            path = find_path(cost_grid, (0, 0), (goal_row, goal_col))
+            goal = min(victim_cells, key=lambda cell: abs(cell[0]) + abs(cell[1]))
+            path = find_path(cost_grid, (0, 0), goal)
             if not path:
                 path = find_path(cost_grid, (0, 0), (GRID_MAX, GRID_MAX))
         else:
