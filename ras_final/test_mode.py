@@ -1,18 +1,23 @@
-"""Small deterministic smoke test for the compact runtime payload."""
+"""Deterministic smoke test for the grid-string runtime protocol."""
 
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
-from ras_final.packet_parser import parse_packet
-from ras_final.payload import build_compact_payload, format_confidence
+script_dir = Path(__file__).resolve().parent
+if str(script_dir) not in sys.path:
+    sys.path.insert(0, str(script_dir))
+
+if __package__ in (None, ""):
+    from protocol import serialize_result
+else:
+    from ras_final.protocol import serialize_result
 
 
 def run_test_mode() -> None:
-    payload = build_compact_payload([[5, 8], [17, 21]], [[0, 0], [1, 0], [2, 0]])
-    parsed = parse_packet(payload)
-    if parsed["v"] != [{"x": 5, "y": 8}, {"x": 17, "y": 21}] or parsed["p"][-1] != [2, 0]:
-        raise AssertionError("compact payload round-trip failed")
-    if format_confidence(0.875) != "087":
-        raise AssertionError("normalized confidence formatting failed")
-    print(json.dumps({"payload": payload, "confidence": format_confidence(0.875)}, separators=(",", ":")))
+    message = serialize_result([[5, 8], [17, 21]], [[0, 0], [1, 0], [2, 0]], 98.7)
+    if not message.endswith("|987"):
+        raise AssertionError("wrong confidence scaling in serialized message")
+    print(json.dumps({"message": message, "grid_points": [[5, 8], [17, 21]], "path": [[0, 0], [1, 0], [2, 0]]}, separators=(",", ":")))

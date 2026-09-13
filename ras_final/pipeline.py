@@ -16,12 +16,22 @@ from typing import Any, Iterable, Sequence
 
 import numpy as np
 
-from .camera import CameraSource
-from .payload import build_compact_payload, format_confidence
-
-from .models.model1_stitching.stitch import Stitcher
-from .models.model2_detection.infer import Detector
-from .models.model3_pathfinding.astar import detections_to_cost_grid, find_path, victim_cells_from_detections
+if __package__ in (None, ""):
+    import sys
+    script_dir = Path(__file__).resolve().parent
+    if str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    from camera import CameraSource
+    from protocol import GRID_MAX, GRID_SIZE, format_confidence, mean_confidence, serialize_result
+    from models.model1_stitching.stitch import Stitcher
+    from models.model2_detection.infer import Detector
+    from models.model3_pathfinding.astar import detections_to_cost_grid, find_path, victim_cells_from_detections
+else:
+    from .camera import CameraSource
+    from .protocol import GRID_MAX, GRID_SIZE, format_confidence, mean_confidence, serialize_result
+    from .models.model1_stitching.stitch import Stitcher
+    from .models.model2_detection.infer import Detector
+    from .models.model3_pathfinding.astar import detections_to_cost_grid, find_path, victim_cells_from_detections
 
 logger = logging.getLogger(__name__)
 
