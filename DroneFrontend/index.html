@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Aegis Field Console — SAR Drone Operations</title>
+
+    <meta
+      name="description"
+      content="Autonomous SAR drone operations console"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="terrain"></div>
+    <div class="vignette"></div>
+
+    <div class="shell">
+      <!-- =========================================================
+       HEADER
+  ========================================================== -->
+
+      <header>
+        <div class="brand">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2L14.8 8.5L21.5 11L14.8 13.5L12 20L9.2 13.5L2.5 11L9.2 8.5L12 2Z"
+                fill="#55D6D0"
+              />
+              <circle cx="12" cy="11" r="2.3" fill="#071017" />
+            </svg>
+          </div>
+
+          <div class="brand-text">
+            <div class="brand-text-header">
+              <div class="brand-pulse-dot"></div>
+
+              <h1>Aegis <span>Field Console</span></h1>
+            </div>
+
+            <p>Autonomous SAR drone operations</p>
+          </div>
+        </div>
+
+        <!-- TELEMETRY -->
+
+        <div class="telemetry">
+          <div class="pill">
+            <span class="dot live" id="lora-dot"></span>
+            LoRa link
+            <strong id="tel-lora">stable</strong>
+          </div>
+
+          <div class="pill">
+            <span class="dot live" id="gps-dot"></span>
+            GPS
+            <strong id="tel-gps">3D fix</strong>
+          </div>
+
+          <div class="pill">
+            <span class="dot live" id="batt-dot"></span>
+
+            Battery
+
+            <div class="batt-bar">
+              <span id="tel-batt-bar"></span>
+            </div>
+
+            <strong id="tel-batt">78%</strong>
+          </div>
+
+          <div class="pill">
+            <span class="dot flat"></span>
+
+            Altitude
+            <strong id="tel-alt">42m</strong>
+          </div>
+
+          <div class="clock-wrapper">
+            <div class="clock" id="clock">--:--:--</div>
+
+            <div class="clock-label">LOCAL TIME</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- =========================================================
+       MISSION BAR
+  ========================================================== -->
+
+      <div class="mission-bar">
+        <div class="mission-left">
+          <h2>
+            <span class="sector-badge"> CRITICAL </span>
+
+            Sector 7 — collapsed structure grid
+          </h2>
+
+          <span class="field">
+            Mission
+
+            <span class="mission-id"> SIH-177-A </span>
+          </span>
+
+          <span class="field">
+            Operator
+            <b>Meghana </b>
+          </span>
+        </div>
+
+        <div class="elapsed-box">
+          <span class="elapsed-dot"></span>
+
+          <span id="mission-clock"> Elapsed 00:00:00 </span>
+        </div>
+      </div>
+
+      <!-- =========================================================
+       MAIN DASHBOARD
+  ========================================================== -->
+
+      <main>
+        <!-- =======================================================
+         LEFT / MAIN PANEL
+    ======================================================== -->
+
+        <section class="main-panel">
+          <!-- PANEL HEADER -->
+
+          <div class="panel-head">
+            <h3>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#55D6D0"
+                stroke-width="2.4"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+
+                <polygon
+                  points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
+                ></polygon>
+              </svg>
+
+              Live Scan
+            </h3>
+
+            <span class="count" id="frame-count"> FRAME 0 </span>
+          </div>
+
+          <!-- =====================================================
+           FEED WRAPPER
+      ====================================================== -->
+
+          <div class="feed-wrap">
+            <!-- ===================================================
+             LIVE SEARCH MAP
+        ==================================================== -->
+
+            <div class="map-panel">
+              <div class="map-header">
+                <div>
+                  <span class="map-title"> SEARCH SECTOR </span>
+
+                  <span class="map-subtitle"> Autonomous coverage path </span>
+                </div>
+
+                <span class="map-status" id="route-badge"> ROUTE READY </span>
+              </div>
+
+              <div class="search-map" id="searchMap">
+                <!-- MAP GRID -->
+
+                <div class="map-grid" id="mapGrid"></div>
+
+                <!-- ROUTE -->
+
+                <svg
+                  class="route-layer"
+                  viewBox="0 0 800 500"
+                  preserveAspectRatio="none"
+                >
+                  <polyline
+                    id="plannedRoute"
+                    fill="none"
+                    stroke="#3E7779"
+                    stroke-width="2"
+                    stroke-dasharray="7 7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></polyline>
+
+                  <polyline
+                    id="completedRoute"
+                    fill="none"
+                    stroke="#55D6D0"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></polyline>
+
+                  <polyline
+                    id="rescueRoute"
+                    fill="none"
+                    stroke="#F1C76B"
+                    stroke-width="3"
+                    stroke-dasharray="9 5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></polyline>
+                </svg>
+
+                <!-- BASE -->
+
+                <div class="base-marker" id="baseMarker">
+                  <span></span>
+                  BASE
+                </div>
+
+                <!-- DRONE -->
+
+                <div class="drone-marker" id="droneMarker">
+                  <div class="drone-pulse"></div>
+
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 3L20 12L12 21L4 12L12 3Z"
+                      fill="#55D6D0"
+                      stroke="#ffffff"
+                      stroke-width="1.2"
+                    />
+
+                    <circle cx="12" cy="12" r="2.5" fill="#071017" />
+                  </svg>
+
+                  <span> DRONE </span>
+                </div>
+
+                <!--
+              Detection markers are inserted here dynamically
+              by script.js when the drone reaches a detection
+              waypoint.
+            -->
+
+                <div id="mapDetections"></div>
+
+                <!-- MAP COORDINATES -->
+
+                <div class="map-coordinates">
+                  <span id="mapLat"> 17.4239°N </span>
+
+                  <span id="mapLon"> 78.4738°E </span>
+                </div>
+              </div>
+
+              <!-- MAP LEGEND -->
+
+              <div class="map-legend">
+                <div class="legend-item">
+                  <span class="legend-dot drone"></span>
+                  Drone
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-dot person"></span>
+                  Person
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-dot fire"></span>
+                  Fire
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-dot water"></span>
+                  Standing water
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-line"></span>
+                  Search path
+                </div>
+              </div>
+            </div>
+
+            <!-- ===================================================
+             LIVE CAMERA
+        ==================================================== -->
+
+            <div class="camera-panel">
+              <div class="camera-head">
+                <div>
+                  <span class="camera-title"> LIVE CAMERA </span>
+
+                  <span class="camera-subtitle">
+                    AI vision / onboard inference
+                  </span>
+                </div>
+
+                <span class="camera-live">
+                  <span></span>
+                  LIVE
+                </span>
+              </div>
+
+              <!-- CAMERA FRAME -->
+
+              <div class="frame">
+                <canvas id="feedCanvas"></canvas>
+
+                <div class="scanner"></div>
+
+                <div class="reticle corner-tl"></div>
+                <div class="reticle corner-tr"></div>
+                <div class="reticle corner-bl"></div>
+                <div class="reticle corner-br"></div>
+
+                <!-- CAMERA INFO -->
+
+                <div class="frame-tag">
+                  <span class="dot"></span>
+
+                  Jetson / Edge AI
+                </div>
+
+                <div class="optic-telemetry">EO/IR-HD // FOV 42.5°</div>
+
+                <div class="sensor-meta">GIMBAL −32° // 14.2 m/s</div>
+
+                <div class="coords" id="frame-coords">17.4239°N, 78.4738°E</div>
+
+                <!-- =================================================
+                 DYNAMIC CAMERA DETECTION
+            ================================================== -->
+
+                <div id="cameraDetections" class="camera-detections">
+                </div>
+              </div>
+            </div>
+
+            <!-- ===================================================
+             LOWER AREA
+             PATH + COMPACT MISSION CONTROL
+        ==================================================== -->
+
+            <div class="lower-control-row">
+              <!-- SEARCH COVERAGE -->
+
+              <div class="path-panel">
+                <div class="path-panel-head">
+                  <div>
+                    <h4>SEARCH COVERAGE</h4>
+
+                    <span id="pathStatus">
+                      Drone preparing autonomous traversal
+                    </span>
+                  </div>
+
+                  <span class="coverage-value" id="coverageValue"> 0% </span>
+                </div>
+
+                <div class="status-bar">
+                  <div class="status-fill" id="route-progress"></div>
+                </div>
+
+                <div class="path-info">
+                  <span>
+                    WAYPOINT
+
+                    <b id="currentWaypoint"> 1 / 48 </b>
+                  </span>
+
+                  <span>
+                    MODE
+
+                    <b id="flightMode"> SEARCH </b>
+                  </span>
+
+                  <span>
+                    SPEED
+
+                    <b> 14.2 m/s </b>
+                  </span>
+                </div>
+              </div>
+
+              <!-- =================================================
+               COMPACT MISSION CONTROL
+          ================================================== -->
+
+              <div class="mission-control" id="missionControl">
+                <div class="mission-control-head">
+                  <span> MISSION CONTROL </span>
+
+                  <span class="control-status" id="controlStatus"> AUTO </span>
+                </div>
+
+                <div class="mission-buttons">
+                  <!-- RESCUE VICTIMS -->
+
+                  <button
+                    id="rescueBtn"
+                    class="control-btn primary"
+                    type="button"
+                    disabled
+                  >
+                    <span> ✦ </span>
+
+                    <b> Rescue Victims </b>
+                  </button>
+
+                  <!-- PAUSE -->
+
+                  <button id="pauseBtn" class="control-btn" type="button">
+                    <span> Ⅱ </span>
+
+                    <b> Pause </b>
+                  </button>
+
+                  <!-- REROUTE -->
+
+                  <button id="rerouteBtn" class="control-btn" type="button">
+                    <span> ↻ </span>
+
+                    <b> Reroute </b>
+                  </button>
+
+                  <!-- RETURN TO BASE -->
+
+                  <button id="rtbBtn" class="control-btn danger" type="button">
+                    <span> ⌂ </span>
+
+                    <b> Return Base </b>
+                  </button>
+                </div>
+
+                <div id="missionStatus" class="mission-status">
+                  <span class="status-dot"></span>
+
+                  Mission active
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =======================================================
+         RIGHT / DETECTION PANEL
+    ======================================================== -->
+
+        <section class="detection-panel">
+          <div class="panel-head">
+            <h3>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#55D6D0"
+                stroke-width="2.4"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+
+              Detections
+            </h3>
+
+            <span class="count" id="detection-count"> 0 ACTIVE </span>
+          </div>
+
+          <!--
+        IMPORTANT:
+        This starts EMPTY.
+
+        Person / Fire / Standing Water will be inserted
+        dynamically by script.js only when the drone reaches
+        their corresponding waypoint.
+      -->
+
+          <div class="detections" id="detections">
+            <div class="empty">
+              <div class="empty-radar"></div>
+
+              <strong> SCANNING SECTOR </strong>
+
+              <span>
+                No objects identified yet. Detection events will appear as the
+                drone reaches each search point.
+              </span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+
+      <footer>
+        <span>
+          AEGIS FIELD CONSOLE
+          <code>SIH-177</code>
+        </span>
+
+        <span> EDGE AI · AUTONOMOUS SAR </span>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
